@@ -1,0 +1,43 @@
+name: Default Ruleset
+scores:
+  - name: Is Auth flow?
+    value: 1
+    level: resource
+    content:
+      matches:
+        - login
+        - logout
+        - auth
+
+  - name: Is Search?
+    value: 1
+    level: resource
+    content:
+      matches:
+        - search
+        - query
+        - graphql
+
+  - name: Has Form?
+    value: 1
+    level: content
+    content:
+      elementName: form
+
+  - name: Has hidden input?
+    value: 1
+    level: content
+    content:
+      elementName: input
+      attr:
+        hidden: true
+
+  - name: Has file Upload?
+    value: 2
+    level: content
+    content:
+      elementName: input
+      attr:
+        type: file
+
+
