@@ -7,7 +7,10 @@ require (
 	golang.org/x/text v0.26.0
 )
 
-require gopkg.in/yaml.v3 v3.0.1 // indirect
+require (
+	github.com/urfave/cli/v3 v3.3.3 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	golang.org/x/net v0.41.0
