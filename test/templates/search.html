@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search</title>
+</head>
+<body>
+    <label for="search">Search:</label>
+    <input type="text" id="search">
+    <div id="results"></div>
+    <script>
+        const input = document.getElementById('search')
+        const results = document.getElementById('results')
+
+        input.addEventListener('change', function(event) {
+            const query = event.target.value;
+
+            fetch('/products?name=' + query)
+                .then(r => r.json())
+                .then(r => results.innerText = JSON.stringify(r))
+        })
+    </script>
+</body>
+</html>
