@@ -18,7 +18,7 @@ func init() {
 	})
 
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.TraceLevel)
+	log.SetLevel(log.DebugLevel)
 }
 
 func main() {
@@ -37,29 +37,51 @@ func main() {
 		// CheckRedirect: true,
 	}
 
-	url := "https://crawler-test.com/links/repeated_external_links"
-	resourceScore := evaluator.EvaluateUrl(url, ruleset)
+	urls := []string{
+		"http://localhost:5555/login",
+		"http://localhost:5555/logout",
+		"http://localhost:5555/search",
+	}
 
-	log.WithFields(log.Fields{
-		"url":   url,
-		"score": resourceScore,
-	}).Info("Finished evaluating URL")
+	for _, url := range urls {
+		score := 0
 
-	response, err := client.Get(url)
+		resourceScore := evaluator.EvaluateUrl(url, ruleset)
+		score += resourceScore
 
-	if err != nil {
 		log.WithFields(log.Fields{
-			"url": url,
-			"err": err,
-		}).Error("Failed to retrieve page content")
+			"url":   url,
+			"score": resourceScore,
+		}).Info("Finished evaluating URL")
 
-		return
+		response, err := client.Get(url)
+
+		if err != nil {
+			log.WithFields(log.Fields{
+				"url": url,
+				"err": err,
+			}).Error("Failed to retrieve page content")
+
+			return
+		}
+
+		if response.StatusCode == http.StatusOK {
+			document, _ := html.Parse(response.Body)
+			contentScore := evaluator.EvaluateHTML(document, ruleset)
+
+			log.WithFields(log.Fields{
+				"url":   url,
+				"score": contentScore,
+			}).Info("Finished evaluating content")
+
+			score += contentScore
+		}
+
+		log.WithFields(log.Fields{
+			"url":   url,
+			"score": score,
+		}).Info("Finished scoring URL")
+
+		response.Body.Close()
 	}
-
-	if response.StatusCode == http.StatusOK {
-		document, _ := html.Parse(response.Body)
-		evaluator.EvaluateHTML(document, *ruleset)
-	}
-
-	response.Body.Close()
 }

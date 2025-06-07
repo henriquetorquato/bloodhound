@@ -1,17 +1,11 @@
 package evaluator
 
 import (
+	utils "bloodhound/lib"
 	rules "bloodhound/lib/rule"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
-
-type UrlEvaluation struct {
-	url      string
-	absolute bool
-	score    int
-}
 
 func EvaluateUrl(url string, ruleset *rules.Ruleset) int {
 	score := 0
@@ -35,13 +29,8 @@ func EvaluateUrl(url string, ruleset *rules.Ruleset) int {
 			continue
 		}
 
-		for _, word := range rule.Content.Matches {
-			if !strings.Contains(url, word) {
-				continue
-			}
-
+		if utils.ContainsAny(url, rule.Content.Matches) {
 			score += rule.Value
-			break
 		}
 	}
 

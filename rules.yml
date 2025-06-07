@@ -22,13 +22,13 @@ scores:
     value: 1
     level: content
     content:
-      elementName: form
+      element: form
 
   - name: Has hidden input?
     value: 1
     level: content
     content:
-      elementName: input
+      element: input
       attr:
         hidden: true
 
@@ -36,7 +36,7 @@ scores:
     value: 2
     level: content
     content:
-      elementName: input
+      element: input
       attr:
         type: file
 
