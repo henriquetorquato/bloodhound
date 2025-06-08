@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"bloodhound/lib/bloodhound"
-	rules "bloodhound/lib/rule"
+	"bloodhound/lib/client"
+	"bloodhound/lib/rules"
 	"bufio"
 	"errors"
 	"fmt"
@@ -14,11 +15,14 @@ import (
 )
 
 var (
-	// Command input variables
 	inputFile   string
-	outputFile  string
 	rulesetFile string
-	logLevelStr string
+
+	outputFile     string
+	logLevelStr    string
+	requestRate    int
+	requestHeaders []string
+	proxyServer    string
 
 	cmd = &cobra.Command{
 		Use:   "bloodhound",
@@ -56,7 +60,22 @@ var (
 				os.Exit(1)
 			}
 
-			results := bloodhound.Execute(targetUrls, ruleset)
+			// Parse client configurations
+			headers, err := parseCustomHeaders(requestHeaders)
+
+			if err != nil {
+				log.Fatalf("Failed to parse customer headers. Reason: %s", err.Error())
+				os.Exit(1)
+			}
+
+			clientConfig := client.ClientConfig{
+				Rate:    requestRate,
+				Headers: headers,
+				Proxy:   proxyServer,
+			}
+
+			// Execute command
+			results := bloodhound.Execute(targetUrls, ruleset, clientConfig)
 
 			// Write to output file
 			err = writeOutputFile(outputFile, results)
@@ -69,15 +88,19 @@ var (
 )
 
 func init() {
+	// Mandatory fields
 	cmd.PersistentFlags().StringVarP(&inputFile, "input", "i", "", "Input file with a list of URLs to process (required)")
 	cmd.MarkFlagRequired("input")
-
-	cmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "output.txt", "Output file to write sorted list")
 
 	cmd.PersistentFlags().StringVarP(&rulesetFile, "rules", "r", "", "Ruleset file with rules and scores (required)")
 	cmd.MarkFlagRequired("rules")
 
+	// Optional fields
+	cmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "output.txt", "Output file to write sorted list")
 	cmd.PersistentFlags().StringVarP(&logLevelStr, "log-level", "l", "info", "Set log level: trace, debug, info, warn, error, fatal, panic")
+	cmd.PersistentFlags().IntVarP(&requestRate, "rate", "R", 100, "Number of HTTP requests allowed during a single second on each thread")
+	cmd.PersistentFlags().StringArrayVarP(&requestHeaders, "headers", "H", []string{}, "Customer headers to be used when sending HTTP requests (--header \"User-Agent: Mozilla/5.0\")")
+	cmd.PersistentFlags().StringVarP(&proxyServer, "proxy", "P", "", "Proxy server in URL format (http://localhost:8080)")
 }
 
 func readInputFile(inputFile string) ([]string, error) {
@@ -152,6 +175,29 @@ func parseLogLevel(level string) (log.Level, error) {
 	default:
 		return log.InfoLevel, fmt.Errorf("unknown log level: %s", level)
 	}
+}
+
+func parseCustomHeaders(inputHeaders []string) (map[string]string, error) {
+	headers := make(map[string]string)
+
+	for _, inputHeader := range inputHeaders {
+		parts := strings.SplitN(inputHeader, ":", 2)
+
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid header format: %q, expected Key:Value", inputHeader)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		if key == "" {
+			return nil, fmt.Errorf("invalid header format: %q, expected Key:Value", inputHeader)
+		}
+
+		headers[key] = value
+	}
+
+	return headers, nil
 }
 
 func Execute() error {

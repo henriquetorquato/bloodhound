@@ -1,8 +1,9 @@
 package bloodhound
 
 import (
+	"bloodhound/lib/client"
 	"bloodhound/lib/evaluator"
-	rules "bloodhound/lib/rule"
+	"bloodhound/lib/rules"
 	"net/http"
 	"sort"
 
@@ -27,13 +28,10 @@ func (context *Context) AddScore(score int) {
 	context.Score += score
 }
 
-func Execute(targetUrls []string, ruleset rules.Ruleset) []Context {
+func Execute(targetUrls []string, ruleset rules.Ruleset, clientConfig client.ClientConfig) []Context {
 	log.WithField("size", len(ruleset.Scores)).Info("Initializing process with loaded ruleset")
 
-	// Prepare client
-	client := http.Client{
-		// CheckRedirect: true,
-	}
+	client := client.NewClient(clientConfig)
 
 	var contexts []Context
 
@@ -46,9 +44,10 @@ func Execute(targetUrls []string, ruleset rules.Ruleset) []Context {
 		log.WithFields(log.Fields{
 			"url":   url,
 			"score": resourceScore,
-		}).Debug("Finished evaluating URL")
+		}).Trace("Finished evaluating URL")
 
-		response, err := client.Get(url)
+		request, _ := http.NewRequest("GET", url, nil)
+		response, err := client.Do(request)
 
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -66,7 +65,7 @@ func Execute(targetUrls []string, ruleset rules.Ruleset) []Context {
 			log.WithFields(log.Fields{
 				"url":   url,
 				"score": contentScore,
-			}).Debug("Finished evaluating content")
+			}).Trace("Finished evaluating content")
 
 			context.AddScore(contentScore)
 		}
@@ -74,7 +73,7 @@ func Execute(targetUrls []string, ruleset rules.Ruleset) []Context {
 		log.WithFields(log.Fields{
 			"url":   url,
 			"score": context.Score,
-		}).Debug("Finished scoring URL")
+		}).Info("Finished scoring URL")
 
 		response.Body.Close()
 		contexts = append(contexts, context)
