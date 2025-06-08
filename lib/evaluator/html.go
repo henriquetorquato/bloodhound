@@ -1,8 +1,8 @@
 package evaluator
 
 import (
-	utils "bloodhound/lib"
 	rules "bloodhound/lib/rule"
+	utils "bloodhound/lib/utils"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"

@@ -45,3 +45,8 @@ The chosen technology for development is Golang, since most of the tools that ar
 ### Tokenizing and interpreting HTML and JS
 
 The core feature of this tool is to interpret HTML, JS, JSON, ... content and score this content based on pre-existing rules. The idea is to use the [native HTML parser](https://pkg.go.dev/golang.org/x/net@v0.40.0/html) implemented by Golang's networking module, and [goja's](https://github.com/dop251/goja/tree/master) JS runtime internal tokenizer to interpret the different content types (don't even need to mention JSON).
+
+## TODO
+
+- [ ] Add metadata output
+- [ ] Move architecture to pipelines

@@ -1,12 +1,10 @@
 package rules
 
 import (
-	"errors"
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type Level string
@@ -35,37 +33,27 @@ type Ruleset struct {
 	Scores []Rule
 }
 
-func NewRuleset(filepath string) (*Ruleset, error) {
+func NewRuleset(filepath string) (Ruleset, error) {
 	data, err := os.ReadFile(filepath)
 
 	if err != nil {
-		return nil, errors.New("Unable to open ruleset file. " + err.Error())
+		return Ruleset{}, fmt.Errorf("unable to open ruleset file. Reason: %s", err.Error())
 	}
 
 	ruleset := Ruleset{}
 	err = yaml.Unmarshal(data, &ruleset)
 
 	if err != nil {
-		return nil, errors.New("Unable to parse ruleset file. " + err.Error())
+		return Ruleset{}, fmt.Errorf("unable to parse ruleset file. Reason: %s", err.Error())
 	}
-
-	log.WithFields(log.Fields{
-		"filepath": filepath,
-		"data":     ruleset,
-	}).Trace("Finished reading ruleset from filepath")
 
 	for _, rule := range ruleset.Scores {
 		if !rule.isValid() {
-			return nil, errors.New("Unable to parse rule with name '" + rule.Name + "': Invalid rule configurations.")
+			return Ruleset{}, fmt.Errorf("unable to parse rule named '%s'. Reason: Invalid rule configurations", rule.Name)
 		}
 	}
 
-	log.WithFields(log.Fields{
-		"filepath":   filepath,
-		"scores_len": len(ruleset.Scores),
-	}).Debug("Finished parsing rulesets from filepath")
-
-	return &ruleset, nil
+	return ruleset, nil
 }
 
 func (rule *Rule) isValid() bool {
