@@ -71,7 +71,6 @@ func nodeMatchesRule(node *html.Node, rule *rules.Rule) bool {
 	return false
 }
 
-// TODO: Add test for this method, attr matching is shady
 // TODO: Add support for "any" matchers
 func nodeMatchesElementRule(node *html.Node, rule *rules.Rule) bool {
 	// Element rules only apply to element node types

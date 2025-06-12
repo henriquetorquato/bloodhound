@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-// TODO: Add tests for subdomain matching
 func TestEvaluateUrl(t *testing.T) {
 	ruleList := []rules.Rule{
 		rules.NewResourceRule("Match login page", 1, false, rules.NewMatchRuleContent([]string{"login", "auth"})),
@@ -45,6 +44,12 @@ func TestEvaluateUrl(t *testing.T) {
 			url := "http://localhost/about"
 			evaluation := EvaluateUrl(&url, &ruleList)
 			assert(t, NewEvaluationResult(0, true), evaluation)
+		})
+
+		t.Run("name in subdomain", func(t *testing.T) {
+			url := "http://auth.localhost/login"
+			evaluation := EvaluateUrl(&url, &ruleList)
+			assert(t, NewEvaluationResult(1, false), evaluation)
 		})
 	})
 

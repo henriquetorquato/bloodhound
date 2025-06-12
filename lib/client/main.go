@@ -21,9 +21,7 @@ type ClientConfig struct {
 	Proxy   string
 }
 
-/* TODO:
-- Stop when receiving http 429 (Too Many Requests)
-*/
+// TODO: Stop when receiving http 429 (Too Many Requests)
 
 func NewClient(config ClientConfig) *BloodhoundClient {
 	rateLimiter := rate.NewLimiter(rate.Every(1*time.Second), config.Rate)

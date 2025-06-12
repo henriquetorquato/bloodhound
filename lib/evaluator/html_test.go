@@ -10,7 +10,6 @@ import (
 
 func TestEvaluateHTML(t *testing.T) {
 
-	// TODO: Add test for multiple equal elements on the page
 	ruleList := []rules.Rule{
 		rules.NewContentRule("Has form", 1, false, rules.NewElementRuleContent("form", nil)),
 		rules.NewContentRule("Has hidden input", 2, false, rules.NewElementRuleContent("input", map[string]string{"type": "hidden", "hidden": "true"})),
