@@ -49,4 +49,3 @@ The core feature of this tool is to interpret HTML, JS, JSON, ... content and sc
 ## TODO
 
 - [ ] Add metadata output
-- [ ] Move architecture to pipelines

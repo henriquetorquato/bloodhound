@@ -3,97 +3,131 @@ package evaluator
 import (
 	"bloodhound/lib/rules"
 	"bloodhound/lib/utils"
+	"slices"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
-func EvaluateHTML(document *html.Node, ruleset *rules.Ruleset) int {
+func EvaluateHTML(document *html.Node, ruleList []rules.Rule) EvaluationResult {
 	score := 0
+
+	if document == nil {
+		return DefaultEvaluationResult()
+	}
+
+	var matchedRules []string
 
 	for node := range document.Descendants() {
 		if !shouldEvaluate(node) {
 			log.WithFields(log.Fields{
 				"type": node.Type,
-			}).Debug("Skipping rule evaluation for HTML content node")
+			}).Trace("Skipping rule evaluation for HTML content node")
 
 			continue
 		}
 
-		score += evaluateNode(node, ruleset)
-	}
+		for _, rule := range ruleList {
+			if rule.Level != rules.ContentLevel {
+				log.WithFields(log.Fields{
+					"rule": rule.Name,
+				}).Trace("Unable to evaluate rule: Incompatible rule level")
 
-	return score
-}
-
-func evaluateNode(node *html.Node, ruleset *rules.Ruleset) int {
-	score := 0
-
-	for _, rule := range ruleset.Scores {
-		// Skip rules that don't apply
-		if rule.Level != rules.ContentLevel {
-			log.WithFields(log.Fields{
-				"node": node.Data,
-				"rule": rule.Name,
-			}).Trace("Skipping rule while evaluating Node")
-
-			continue
-		}
-
-		if rule.Content.Element != "" {
-			// Element rules only apply to element node types
-			if node.Type != html.ElementNode {
 				continue
 			}
 
-			// In this context, `node.Data` is the tag name
-			if rule.Content.Element != node.Data {
+			// Same rule should not apply twice on the same document
+			if slices.Contains(matchedRules, rule.Name) {
 				continue
 			}
 
-			// element type rule can apply with or without attr matching
-			if len(rule.Content.Attr) != 0 {
-				attrMap := getAttrMap(node.Attr)
+			matches := nodeMatchesRule(node, &rule)
 
-				for key, value := range rule.Content.Attr {
-					nodeAttrValue := attrMap[key]
+			if matches {
+				if rule.Remove {
+					log.WithFields(log.Fields{
+						"rule": rule.Name,
+					}).Trace("Rule with remove parameter matched, resource will be completely skipped")
 
-					if nodeAttrValue == value {
-						log.WithFields(log.Fields{
-							"node": node,
-							"rule": rule.Name,
-						}).Debug("Rule match")
-
-						score += 1
-					}
+					return NewEvaluationResult(0, true)
 				}
 
-			} else {
-				log.WithFields(log.Fields{
-					"node": node,
-					"rule": rule.Name,
-				}).Debug("Rule match")
-
-				score += 1
-			}
-		} else if len(rule.Content.Matches) != 0 {
-			// Text matching only applies to text nodes
-			if node.Type != html.TextNode {
-				continue
-			}
-
-			if utils.ContainsAny(node.Data, rule.Content.Matches) {
-				log.WithFields(log.Fields{
-					"node": node,
-					"rule": rule.Name,
-				}).Debug("Rule match")
-
-				score += 1
+				score += rule.Value
+				matchedRules = append(matchedRules, rule.Name)
 			}
 		}
 	}
 
-	return score
+	return NewEvaluationResult(score, false)
+}
+
+func nodeMatchesRule(node *html.Node, rule *rules.Rule) bool {
+	if rule.Content.Element != "" {
+		return nodeMatchesElementRule(node, rule)
+	} else if len(rule.Content.Matches) != 0 {
+		return evaluateNodeMatchRule(node, rule)
+	}
+
+	return false
+}
+
+// TODO: Add test for this method, attr matching is shady
+// TODO: Add support for "any" matchers
+func nodeMatchesElementRule(node *html.Node, rule *rules.Rule) bool {
+	// Element rules only apply to element node types
+	if node.Type != html.ElementNode {
+		return false
+	}
+
+	// In this context, `node.Data` is the tag name
+	if rule.Content.Element != node.Data {
+		return false
+	}
+
+	if len(rule.Content.Attr) != 0 {
+		match := true
+		attrMap := getAttrMap(node.Attr)
+
+		for key, value := range rule.Content.Attr {
+			nodeAttrValue, hasKey := attrMap[key]
+
+			if hasKey && nodeAttrValue != value {
+				match = false
+				break
+			}
+		}
+
+		if !match {
+			return false
+		}
+
+		return true
+	}
+
+	log.WithFields(log.Fields{
+		"node": node,
+		"rule": rule.Name,
+	}).Trace("Content level rule match")
+
+	return true
+}
+
+func evaluateNodeMatchRule(node *html.Node, rule *rules.Rule) bool {
+	// Text matching only applies to text nodes
+	if node.Type != html.TextNode {
+		return false
+	}
+
+	if utils.ContainsAny(node.Data, rule.Content.Matches) {
+		log.WithFields(log.Fields{
+			"node": node,
+			"rule": rule.Name,
+		}).Trace("Content level rule match")
+
+		return true
+	} else {
+		return false
+	}
 }
 
 func shouldEvaluate(node *html.Node) bool {

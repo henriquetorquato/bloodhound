@@ -3,36 +3,28 @@ package evaluator
 import (
 	"bloodhound/lib/rules"
 	"bloodhound/lib/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
-func EvaluateUrl(url string, ruleset *rules.Ruleset) int {
+func EvaluateUrl(url *string, ruleList *[]rules.Rule) EvaluationResult {
 	score := 0
 
-	for _, rule := range ruleset.Scores {
+	for _, rule := range *ruleList {
 		if rule.Level != rules.ResourceLevel {
-			log.WithFields(log.Fields{
-				"url":  url,
-				"rule": rule.Name,
-			}).Trace("Skipping rule while evaluating URL")
-
 			continue
 		}
 
 		if len(rule.Content.Matches) == 0 {
-			log.WithFields(log.Fields{
-				"url":  url,
-				"rule": rule.Name,
-			}).Trace("Rule does not apply: Match list is empty")
-
 			continue
 		}
 
-		if utils.ContainsAny(url, rule.Content.Matches) {
+		if utils.ContainsAny(*url, rule.Content.Matches) {
+			if rule.Remove {
+				return NewEvaluationResult(0, rule.Remove)
+			}
+
 			score += rule.Value
 		}
 	}
 
-	return score
+	return NewEvaluationResult(score, false)
 }

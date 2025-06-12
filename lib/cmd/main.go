@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"bloodhound/lib/bloodhound"
 	"bloodhound/lib/client"
+	"bloodhound/lib/evaluator"
 	"bloodhound/lib/rules"
 	"bufio"
 	"errors"
@@ -52,6 +52,10 @@ var (
 				os.Exit(1)
 			}
 
+			log.WithFields(log.Fields{
+				"size": len(targetUrls),
+			}).Trace("Finished reading input file")
+
 			// Validate that rule file exists
 			ruleset, err := rules.NewRuleset(rulesetFile)
 
@@ -59,6 +63,10 @@ var (
 				log.Fatalf("Failed to process ruleset file. Reason: %s", err.Error())
 				os.Exit(1)
 			}
+
+			log.WithFields(log.Fields{
+				"size": len(ruleset.Rules),
+			}).Trace("Finished reading ruleset file")
 
 			// Parse client configurations
 			headers, err := parseCustomHeaders(requestHeaders)
@@ -74,8 +82,12 @@ var (
 				Proxy:   proxyServer,
 			}
 
+			log.WithFields(log.Fields{
+				"config": clientConfig,
+			}).Trace("Finished creating HTTP client configurations")
+
 			// Execute command
-			results := bloodhound.Execute(targetUrls, ruleset, clientConfig)
+			results := evaluator.Evaluate(targetUrls, ruleset, clientConfig)
 
 			// Write to output file
 			err = writeOutputFile(outputFile, results)
@@ -130,7 +142,7 @@ func readInputFile(inputFile string) ([]string, error) {
 }
 
 // TODO: Write to /temp if unable to write to configured output
-func writeOutputFile(outputFile string, results []bloodhound.Context) error {
+func writeOutputFile(outputFile string, results []evaluator.Context) error {
 	file, err := os.Create(outputFile)
 	if err != nil {
 		return errors.New("unable to create output file")
