@@ -1,18 +1,13 @@
 package client
 
 import (
-	"context"
 	"net/http"
 	"net/url"
-	"time"
-
-	"golang.org/x/time/rate"
 )
 
 type BloodhoundClient struct {
-	client      *http.Client
-	rateLimiter *rate.Limiter
-	config      ClientConfig
+	client *http.Client
+	config ClientConfig
 }
 
 type ClientConfig struct {
@@ -21,11 +16,7 @@ type ClientConfig struct {
 	Proxy   string
 }
 
-// TODO: Stop when receiving http 429 (Too Many Requests)
-
 func NewClient(config ClientConfig) *BloodhoundClient {
-	rateLimiter := rate.NewLimiter(rate.Every(1*time.Second), config.Rate)
-
 	return &BloodhoundClient{
 		client: &http.Client{
 			Transport: &http.Transport{
@@ -44,8 +35,7 @@ func NewClient(config ClientConfig) *BloodhoundClient {
 				},
 			},
 		},
-		rateLimiter: rateLimiter,
-		config:      config,
+		config: config,
 	}
 }
 
@@ -53,14 +43,6 @@ func (client *BloodhoundClient) Do(request *http.Request) (*http.Response, error
 	// Add custom Headers
 	for key, value := range client.config.Headers {
 		request.Header.Set(key, value)
-	}
-
-	// Honour rate limiter
-	context := context.Background()
-	err := client.rateLimiter.Wait(context)
-
-	if err != nil {
-		return nil, err
 	}
 
 	response, err := client.client.Do(request)

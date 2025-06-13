@@ -96,11 +96,7 @@ func nodeMatchesElementRule(node *html.Node, rule *rules.Rule) bool {
 			}
 		}
 
-		if !match {
-			return false
-		}
-
-		return true
+		return match
 	}
 
 	log.WithFields(log.Fields{

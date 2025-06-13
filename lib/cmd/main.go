@@ -3,6 +3,7 @@ package cmd
 import (
 	"bloodhound/lib/client"
 	"bloodhound/lib/evaluator"
+	"bloodhound/lib/evaluator/pipeline"
 	"bloodhound/lib/rules"
 	"bufio"
 	"errors"
@@ -24,6 +25,7 @@ var (
 	requestHeaders []string
 	proxyServer    string
 
+	// TODO: Add "passive" option, so that no request is made to the target, and only resource name is evaluated
 	cmd = &cobra.Command{
 		Use:   "bloodhound",
 		Short: "URL resource evaluator and sorter",
@@ -142,7 +144,7 @@ func readInputFile(inputFile string) ([]string, error) {
 }
 
 // TODO: Write to /temp if unable to write to configured output
-func writeOutputFile(outputFile string, results []evaluator.Context) error {
+func writeOutputFile(outputFile string, results []pipeline.Context) error {
 	file, err := os.Create(outputFile)
 	if err != nil {
 		return errors.New("unable to create output file")
